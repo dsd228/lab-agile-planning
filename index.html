@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mapa UX/UI Profesional</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <h1>Mapa UX/UI + Agile Profesional</h1>
+  <p>Guía paso a paso con tips, herramientas y mejores prácticas</p>
+</header>
+
+<main class="map-container">
+  <!-- Nodo Central -->
+  <section class="node central" data-id="central">
+    <h2>USUARIO / CLIENTE</h2>
+    <ul>
+      <li>Punto de partida: necesidades reales</li>
+      <li>Dolor del usuario (Pain Points)</li>
+      <li>Objetivos de negocio y KPIs</li>
+      <li>Herramientas: Google Analytics, Hotjar, Typeform</li>
+    </ul>
+  </section>
+
+  <!-- UX -->
+  <section class="node rama-ux" data-id="ux" data-connections="ui,practica">
+    <h3>UX</h3>
+    <ol class="steps">
+      <li>Fundamentos: UX ≠ UI, usabilidad + deseabilidad</li>
+      <li>Leyes UX: 
+        <span class="tooltip">Jakob, Hick, Miller, Fitts
+          <span class="tooltiptext">Jakob: patrones esperados | Hick: menos opciones | Miller: 7±2 | Fitts: tamaño y distancia</span>
+        </span>
+      </li>
+      <li>Investigación: Personas, Journey Maps, Benchmarking</li>
+      <li>Tests de usabilidad: Maze, Lookback, UsabilityHub</li>
+      <li>Tip: Plantillas de entrevistas y tests para agilizar</li>
+    </ol>
+  </section>
+
+  <!-- UI -->
+  <section class="node rama-ui" data-id="ui" data-connections="ux,practica">
+    <h3>UI & Figma</h3>
+    <ol class="steps">
+      <li>Figma: Auto Layout, Components, Variants</li>
+      <li>Sistemas de diseño: Atomic Design, Grid 8pt, Spacing consistente</li>
+      <li>Tipografía: Jerarquía H1-H2-H3, Google Fonts, regla 60-30-10</li>
+      <li>Iconografía y assets: Iconify, Unsplash, Feather Icons</li>
+      <li>Accesibilidad: contraste con Stark, colores legibles</li>
+    </ol>
+  </section>
+
+  <!-- Agile -->
+  <section class="node rama-agile" data-id="agile" data-connections="practica">
+    <h3>Agile</h3>
+    <ol class="steps">
+      <li>Sprint Planning: priorizar tareas por valor + esfuerzo</li>
+      <li>Daily: solo bloqueos y avances</li>
+      <li>Design QA: consistencia visual, interacción y accesibilidad</li>
+      <li>DoD: cada entrega lista para dev</li>
+    </ol>
+  </section>
+
+  <!-- Práctica / Flujo -->
+  <section class="node rama-practica" data-id="practica" data-connections="ux,ui,agile">
+    <h3>Práctica / Flujo</h3>
+    <ol class="steps">
+      <li>Briefing: recopilar info de usuario, objetivos, KPIs</li>
+      <li>Investigación UX: Personas, Journey Map, Benchmark</li>
+      <li>Wireframes low-fi: papel o Figma</li>
+      <li>Prototipo interactivo: Figma, Adobe XD, Maze</li>
+      <li>Testeo: Maze / Lookback → feedback + métricas</li>
+      <li>Iterar según hallazgos</li>
+      <li>UI Final: grids, tipografía, color, iconos, accesibilidad</li>
+      <li>Handoff: Zeplin / Figma Dev Mode → components + tokens + assets</li>
+    </ol>
+  </section>
+</main>
+
+<footer>
+  <p>Mapa interactivo profesional de UX/UI + Agile</p>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>

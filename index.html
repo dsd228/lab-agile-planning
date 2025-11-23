@@ -1,374 +1,475 @@
 <!doctype html>
 <html lang="es">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Mapa UX/UI + Agile — Miro-style (Interactivo)</title>
-<meta name="description" content="Mapa interactivo tipo Miro para UX/UI + Agile con nodos arrastrables, flechas y notitas" />
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>UX/UI + Agile Master Board — Premium</title>
+<meta name="description" content="Tablero premium UX/UI + Agile — HTML/CSS/JS (vanilla)."/>
 <style>
+  /* -------------------- PALETA & TIPOGRAFÍA -------------------- */
   :root{
-    --bg:#f6f7fb;
-    --card:#fff;
+    --bg: #F7F3E9;            /* crema - page bg */
+    --card:#FFFFFF;
     --muted:#6b6f76;
-    --accent-ux:#648fee;
-    --accent-ui:#68c68d;
-    --accent-agile:#f9a33c;
-    --accent-prac:#ffe066;
-    --central:#cfd6df;
-    --line:#c6c9cf;
-    --highlight:#2b7be4;
-    --radius:12px;
+    --accent-ux:#3A5FCD;      /* azul elegante */
+    --accent-lav:#C3B9FF;     /* lavanda */
+    --accent-cream:#F7F3E9;   /* crema */
+    --accent-grey:#DDE1E7;    /* gris suave */
+    --title:#1C1F2B;         /* negro azulado */
+    --mint:#CFF7E3;          /* verde menta tips */
+    --radius:14px;
+    --shadow: 0 12px 30px rgba(23,28,44,0.08);
   }
-  html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Arial; background:var(--bg); color:#222;}
-  header{padding:18px 22px;background:linear-gradient(180deg,#fff, #fbfdff); box-shadow:0 2px 6px rgba(20,20,30,0.03); position:sticky; top:0; z-index:50;}
-  header h1{margin:0;font-size:18px;}
-  header p{margin:6px 0 0;color:var(--muted);font-size:13px;}
-  #boardWrap{position:relative; overflow:auto; height:calc(100vh - 86px); padding:20px;}
-  #board{position:relative; width:1600px; height:1000px; margin:20px auto; background:linear-gradient(0deg,#fff 0%, #fcfdff 100%); border-radius:16px; box-shadow:0 6px 30px rgba(20,30,50,0.06);}
+  html,body{height:100%;margin:0;font-family:Inter, "Segoe UI", Roboto, Arial, sans-serif; background:var(--bg); color:var(--title); -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;}
+  header{padding:26px 28px; background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%); box-shadow: 0 2px 6px rgba(20,20,30,0.03); position:sticky; top:0; z-index:60;}
+  header .wrap{max-width:1320px;margin:0 auto; display:flex; gap:18px; align-items:center; justify-content:space-between;}
+  header h1{margin:0;font-size:20px;color:var(--title);}
+  header p{margin:4px 0 0;color:var(--muted); font-size:13px; max-width:780px;}
+  .header-frame{background:var(--card); border-radius:12px; padding:16px; box-shadow: var(--shadow); border:1px solid rgba(20,20,30,0.03);}
 
-  /* SVG layer for lines */
-  svg#connectors{position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; overflow:visible;}
+  /* board wrapper (scrollable) */
+  #boardWrap{height:calc(100vh - 104px); overflow:auto; padding:24px; box-sizing:border-box;}
+  #board{position:relative; width:1600px; min-height:1100px; margin:0 auto; background:transparent; border-radius:12px;}
 
-  /* node styles */
+  /* SVG layer for connectors */
+  svg#connectors{position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; overflow:visible; z-index:1;}
+
+  /* Node base */
   .node{
     position:absolute;
-    min-width:220px;
-    max-width:320px;
+    min-width:260px;
+    max-width:380px;
     background:var(--card);
-    padding:12px 14px;
-    border-radius:var(--radius);
-    box-shadow:0 6px 18px rgba(25,30,40,0.06);
+    padding:14px 16px;
+    border-radius:12px;
+    box-shadow:0 10px 30px rgba(20,30,50,0.06);
     cursor:grab;
     user-select:none;
-    transition:transform .16s ease, box-shadow .16s ease;
+    transition:transform .16s ease, box-shadow .16s ease, border-color .12s ease;
     border:2px solid transparent;
+    z-index:10;
   }
   .node:active{cursor:grabbing;}
-  .node:hover{transform:translateY(-6px); box-shadow:0 12px 30px rgba(18,22,30,0.08);}
-  .node .title{font-weight:700; font-size:15px; margin-bottom:8px;}
-  .node .meta{font-size:12px;color:var(--muted); margin-bottom:8px;}
-  .node .badge{display:inline-block; padding:4px 8px; border-radius:999px; font-size:11px; margin-right:6px; color:#fff;}
-  .node.ux .badge{background:var(--accent-ux);}
-  .node.ui .badge{background:var(--accent-ui);}
-  .node.agile .badge{background:var(--accent-agile);}
-  .node.prac .badge{background:var(--accent-prac); color:#333;}
-  .node.central{background:linear-gradient(180deg,var(--central),#e8eef6); width:300px; border-radius:18px; box-shadow:0 14px 40px rgba(18,30,60,0.08);}
+  .node .title{font-size:15px; font-weight:700; color:var(--title); margin-bottom:6px;}
+  .node .subtitle{font-size:12px;color:var(--muted); margin-bottom:8px;}
 
-  /* collapsed vs open */
-  .node .content{display:none; font-size:13px; color:#222; margin-top:8px; line-height:1.35;}
-  .node.open{border-color:var(--highlight); z-index:40; transform:translateY(-8px) scale(1.02);}
+  /* styles by block type */
+  .node.ux{border-left:6px solid var(--accent-ux);}
+  .node.lav{border-left:6px solid var(--accent-lav);}
+  .node.prac{border-left:6px solid #FFD88A;} /* warm */
+  .node.ui{border-left:6px solid #6AD1A8;}
+  .node.agile{border-left:6px solid #F9A33C;}
+  .node.central{width:720px; left:440px; top:40px; border-radius:16px; background:linear-gradient(180deg,#ffffff,#f1f6ff); box-shadow:0 18px 50px rgba(20,30,70,0.06); padding:20px; border:2px solid rgba(58,95,205,0.06); }
+
+  /* collapsed vs open content */
+  .node .content{display:none; margin-top:8px; color:#222; font-size:13px; line-height:1.35;}
+  .node.open{border-color:rgba(58,95,205,0.18); transform:translateY(-8px) scale(1.01); box-shadow:0 22px 60px rgba(24,40,80,0.09); z-index:50;}
   .node.open .content{display:block;}
+
   .node .steps{margin:8px 0 0 18px; padding:0;}
-  .node .steps li{margin:6px 0; font-size:13px; color:#222;}
-  .node .tools{margin-top:8px; font-size:12px; color:var(--muted);}
-  .node .tools b{color:#222;}
+  .node .steps li{margin:8px 0; font-size:13px;}
+  .node .note{margin-top:10px; padding:10px; border-radius:10px; font-size:13px; box-shadow:0 6px 22px rgba(10,20,30,0.04);}
 
-  /* sticky note style for extra tip */
-  .note{
-    margin-top:10px;
-    background:linear-gradient(180deg,#fffef2,#fff7d6);
-    border-left:4px solid rgba(0,0,0,0.06);
-    padding:10px;border-radius:8px;font-size:13px;color:#3a3a3a;
-    box-shadow:0 6px 18px rgba(12,20,40,0.04);
-  }
+  /* sticky note styles (different colors) */
+  .sticky-lav{background:linear-gradient(180deg,#F2EEFF,#ECE0FF); border-left:6px solid var(--accent-lav); color:var(--title);}
+  .sticky-blue{background:linear-gradient(180deg,#EEF4FF,#E6F0FF); border-left:6px solid var(--accent-ux); color:var(--title);}
+  .sticky-cream{background:linear-gradient(180deg,#FFFDF6,#FFF5E0); border-left:6px solid #FFD88A; color:var(--title);}
+  .sticky-mint{background:linear-gradient(180deg,#F6FFF6,#E9FFF0); border-left:6px solid var(--mint); color:var(--title);}
 
-  /* small controls */
-  .controls{position:absolute; right:18px; top:18px; display:flex; gap:8px; z-index:60;}
-  .btn{background:#fff;border:1px solid #e5e7eb;padding:8px 10px;border-radius:8px; font-size:13px; cursor:pointer; box-shadow:0 6px 18px rgba(20,30,50,0.03);}
+  .tools{margin-top:8px; font-size:12px; color:var(--muted);}
+  .tools b{color:var(--title);}
+
+  .badge{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;margin-right:8px;background:var(--accent-grey); color:var(--title);}
+
+  /* legend & controls */
+  .legend{position:absolute; left:24px; top:24px; z-index:80; background:rgba(255,255,255,0.95); padding:12px;border-radius:10px; box-shadow:0 8px 30px rgba(10,20,30,0.04); font-size:13px;}
+  .legend .row{display:flex; gap:8px; align-items:center; margin:6px 0;}
+  .sw{width:12px;height:12px;border-radius:4px;}
+
+  .controls{position:absolute; right:24px; top:24px; z-index:80; display:flex; gap:8px;}
+  .btn{background:#fff; border:1px solid rgba(20,20,30,0.06); padding:8px 12px; border-radius:10px; font-size:13px; cursor:pointer; box-shadow:0 8px 20px rgba(10,20,30,0.03);}
   .btn:active{transform:translateY(1px);}
 
-  /* legend */
-  .legend{position:absolute; left:18px; top:18px; z-index:60; background:rgba(255,255,255,0.95); padding:10px;border-radius:10px; box-shadow:0 6px 22px rgba(10,20,30,0.04); font-size:13px;}
-  .legend .row{display:flex; gap:8px; align-items:center; margin:6px 0;}
-  .sw{width:12px;height:12px;border-radius:3px;}
+  /* highlights */
+  .line{stroke:var(--accent-grey); stroke-width:2.2; opacity:0.95; transition:stroke .18s ease, stroke-width .18s ease, opacity .18s;}
+  .line.highlight{stroke:var(--accent-ux); stroke-width:3.6; opacity:1;}
+  .node.highlight{box-shadow:0 26px 70px rgba(40,80,200,0.08); transform:scale(1.02);}
 
-  /* responsive board wrapper */
-  @media(max-width:980px){
-    #board{width:1200px;height:1200px;}
+  /* helper bottom */
+  .help{position:absolute; left:24px; bottom:24px; z-index:80; background:rgba(255,255,255,0.95); padding:12px;border-radius:10px; font-size:13px; box-shadow:0 8px 30px rgba(10,20,30,0.04); max-width:360px;}
+
+  /* responsive board sizes */
+  @media(max-width:1000px){
+    #board{width:1200px; min-height:1400px;}
+    .node{min-width:230px;}
+    .node.central{width:640px; left:260px;}
   }
   @media(max-width:680px){
-    #board{width:1000px;height:1400px;}
+    #board{width:980px; min-height:1800px;}
+    .legend{display:none;}
   }
-
-  /* line highlight */
-  .line{stroke:var(--line); stroke-width:2; opacity:0.9; transition:stroke .18s ease, stroke-width .18s ease, opacity .18s;}
-  .line.highlight{stroke:var(--highlight); stroke-width:3.2; opacity:1;}
-  .node.highlight{box-shadow:0 18px 50px rgba(40,80,200,0.08);}
-
-  /* accessibility focus */
-  .node:focus{outline:3px dashed rgba(40,120,220,0.18); outline-offset:4px;}
-
-  /* help text at bottom */
-  .help{position:absolute;left:18px; bottom:18px; background:rgba(255,255,255,0.95); padding:10px;border-radius:10px; font-size:13px; box-shadow:0 6px 22px rgba(10,20,30,0.04);}
 </style>
 </head>
 <body>
-<header>
-  <h1>Mapa UX/UI + Agile — Tablero Interactivo</h1>
-  <p>Arrastra nodos. Haz clic para abrir notitas. Al abrir, sus nodos conectados también se abren.</p>
-</header>
-
-<div id="boardWrap" aria-live="polite">
-  <div id="board" role="application" aria-label="Tablero Mapa UX UI Agile">
-    <!-- SVG layer for connectors -->
-    <svg id="connectors" aria-hidden="true"></svg>
-
-    <!-- controls & legend -->
-    <div class="legend" aria-hidden="false">
-      <div style="font-weight:700;margin-bottom:6px">Leyenda</div>
-      <div class="row"><span class="sw" style="background:var(--accent-ux)"></span> UX</div>
-      <div class="row"><span class="sw" style="background:var(--accent-ui)"></span> UI</div>
-      <div class="row"><span class="sw" style="background:var(--accent-agile)"></span> Agile</div>
-      <div class="row"><span class="sw" style="background:var(--accent-prac);border:1px solid #d6c85a"></span> Práctica</div>
+  <header>
+    <div class="wrap header-frame" role="banner" aria-label="Encabezado">
+      <div>
+        <h1>🎯 UX/UI + Agile Master Board</h1>
+        <p>Flujo profesional: Investigación → Ideación → Wireframes → Prototipado → Testeo → Iteración → Entrega</p>
+      </div>
+      <div style="text-align:right; font-size:13px; color:var(--muted)">
+        Premium whiteboard • Notion-like palette
+      </div>
     </div>
+  </header>
 
-    <div class="controls" aria-hidden="false">
-      <button class="btn" id="reset">Restaurar posiciones</button>
-      <button class="btn" id="fit">Centrar tablero</button>
+  <div id="boardWrap" aria-live="polite">
+    <div id="board" role="application" aria-label="Tablero UX UI Agile">
+      <!-- SVG connectors -->
+      <svg id="connectors" aria-hidden="true"></svg>
+
+      <!-- legend and controls -->
+      <div class="legend" aria-hidden="false">
+        <div style="font-weight:700;margin-bottom:6px">Leyenda • Paleta</div>
+        <div class="row"><span class="sw" style="background:var(--accent-ux)"></span> UX</div>
+        <div class="row"><span class="sw" style="background:var(--accent-lav)"></span> Research / Sticky</div>
+        <div class="row"><span class="sw" style="background:var(--accent-cream)"></span> Wireframes / Prototipos</div>
+        <div class="row"><span class="sw" style="background:var(--mint)"></span> Tips</div>
+      </div>
+
+      <div class="controls" aria-hidden="false">
+        <button class="btn" id="reset">🔁 Restaurar posiciones</button>
+        <button class="btn" id="fit">🎯 Centrar</button>
+      </div>
+
+      <!-- help -->
+      <div class="help" aria-hidden="false">
+        <b>Cómo usar</b><br>
+        • Arrastra nodos para reorganizar el tablero.<br>
+        • Haz clic en un nodo para abrirlo; abre sus nodos conectados.<br>
+        • Presiona <kbd>Esc</kbd> para cerrar todos. Guardado automático de posiciones.
+      </div>
+
+      <!-- Nodes will be injected by JS -->
     </div>
-
-    <!-- Nodes are generated by JS -->
   </div>
-
-  <div class="help" aria-hidden="false">
-    <b>Cómo usar</b><br>
-    - Arrastra nodos para reorganizar el tablero.<br>
-    - Clic en un nodo: abre pasos y notitas; también abre nodos conectados.<br>
-    - Al arrastrar un nodo, las flechas se actualizan automáticamente.<br>
-  </div>
-</div>
 
 <script>
-/* ===== Datos de nodos: edítalos si quieres =====
-   Cada nodo tiene:
-    id, title, type (ux/ui/agile/prac/central), x,y (px en tablero), connections (array de ids),
-    steps (array), tools (string/HTML), note (string HTML)
-*/
+/* -------------------- NODES DATA (contenido premium) -------------------- */
 const nodesData = [
   {
     id:'central',
-    title:'USUARIO / CLIENTE',
+    title:'📌 INICIO — ROADMAP GENERAL',
     type:'central',
-    x:640, y:120,
-    connections:['ux','ui','practica'],
+    x:440, y:30,
+    connections:['uxResearch','insights','wireframes','prototypes','testing','agile'],
     steps:[
-      'Identificar stakeholders y objetivos de negocio',
-      'Recoger métricas clave (KPIs) y datos cuantitativos',
-      'Mapear pain points mediante entrevistas y analytics'
+      'Investigación → Ideación → Wireframes',
+      'Prototipado → Testeo → Iteración → Entrega'
     ],
-    tools:`<b>Herramientas:</b> Google Analytics, Hotjar, Typeform.`,
-    note:`Documenta un mapa de empatía rápido: necesidad / sentimiento / acción.`
+    tools:`<div class="sticky-blue note">Marco grande: Título y subtítulo con roadmap general. Usa esto como ancla del board.</div>`,
+    note:`<div class="sticky-cream note">Usa este bloque para definir objetivos del sprint y KPIs (ej. conversión, retención).</div>`
   },
+
+  /* 2. UX Research */
   {
-    id:'ux',
-    title:'UX — Investigación & Estrategia',
+    id:'uxResearch',
+    title:'🔍 UX Research — Investigación del usuario',
+    type:'lav',
+    x:80, y:170,
+    connections:['insights','wireframes'],
+    steps:[
+      'Preguntas clave: ¿Qué problema? ¿Quién lo sufre? ¿Cómo lo resuelve hoy? ¿Qué siente?',
+      'Métodos: entrevistas 1:1, encuestas, benchmarking, analytics, mapas de empatía',
+      'Output: personas, journey actual, insights priorizados'
+    ],
+    tools:`<div class="sticky-lav note"><b>Sticky — Preguntas clave</b><br>¿Qué problema real quiero resolver?<br>¿Quién sufre este problema?<br>¿Qué limita al usuario?</div>`,
+    note:`<div class="sticky-blue note"><b>Métodos</b><br>Entrevistas • Encuestas • Hotjar • GA • Miro / FigJam para workshops</div>`
+  },
+
+  /* 3. Insights & Personas */
+  {
+    id:'insights',
+    title:'👤 Insights & Personas',
     type:'ux',
-    x:320, y:280,
-    connections:['ui','practica'],
+    x:340, y:200,
+    connections:['uxResearch','wireframes'],
     steps:[
-      'Brief + preguntas clave (plantilla)',
-      'Recruit y entrevistas (5–8 usuarios)',
-      'Personas y Journey Map (Miro / FigJam)',
-      'Benchmarking competitivo (Airtable / Notion)',
-      'Tests de usabilidad rápidos (Maze)'
+      'Crea 2–3 personas prioritarias con foto y contexto',
+      'Mapa de empatía (qué piensa, siente, dice, hace)',
+      'Journey map con etapas, acciones, emociones y puntos críticos'
     ],
-    tools:`<b>Tips:</b> Usa FigJam para workshop; guarda plantillas de entrevistas en Notion.`,
-    note:`Ley de Jakob: aplica patrones conocidos. Hick: simplifica opciones importantes.`
+    tools:`<div class="note sticky-cream"><b>Plantilla Persona:</b> Nombre • Objetivos • Dolor • Hábitos • Oportunidades</div>`,
+    note:`<div class="sticky-mint note"><b>Tip premium</b><br>Empieza las decisiones visuales con evidencia: datos + heurísticas.</div>`
   },
+
+  /* 4. Wireframes */
   {
-    id:'ui',
-    title:'UI — Diseño Visual & Figma',
-    type:'ui',
-    x:960, y:300,
-    connections:['ux','practica'],
+    id:'wireframes',
+    title:'🟫 Wireframes — Baja fidelidad',
+    type:'prac',
+    x:620, y:160,
+    connections:['prototypes','insights'],
     steps:[
-      'Definir sistema: tokens, paleta y tipografía',
-      'Configurar 8pt Grid y Auto Layout en Figma',
-      'Crear componentes/variants (botones, inputs, cards)',
-      'Revisiones de contraste y accesibilidad (Stark)',
-      'Export de assets y sprites (Iconify / SVG)'
+      'Blanco y negro: enfoque en arquitectura y contenido',
+      'Crea 3 variaciones por pantalla (A/B rápido)',
+      'Usa layout grid 8pt; define jerarquía y patrones'
     ],
-    tools:`<b>Shortcuts:</b> Auto Layout (Shift+A), Components (Ctrl/Cmd+Alt+K)<br><b>Plugins:</b> Content Reel, Iconify, Stark.`,
-    note:`Mantén jerarquía tipográfica y regla 60-30-10 para color.`
+    tools:`<div class="sticky-cream note"><b>Reglas</b><br>Empieza simple • No tipografías finales • Test interno rápido</div>`,
+    note:`<div class="sticky-mint note"><b>Tip</b><br>Genera wireframes con plantillas para acelerar (Figma, Balsamiq).</div>`
   },
+
+  /* 5. Prototypes */
+  {
+    id:'prototypes',
+    title:'🎨 Prototipos en Figma — Alta fidelidad',
+    type:'ui',
+    x:920, y:200,
+    connections:['testing','wireframes'],
+    steps:[
+      'Define tokens: color, spacing, typography',
+      'Crea components y variants (botones, inputs, cards)',
+      'Usa Auto Layout y nombres claros en capas'
+    ],
+    tools:`<div class="note sticky-blue"><b>Figma Tips</b><br>Auto-layout (Shift+A) • Components • Variants • Plugins: Content Reel, Iconify, Stark</div>`,
+    note:`<div class="sticky-mint note"><b>Pro Tip</b><br>Smart Animate solo si aporta claridad; usa Component Properties para reducir duplicación.</div>`
+  },
+
+  /* 6. Testing */
+  {
+    id:'testing',
+    title:'🧪 Testing UX — Pruebas con usuarios',
+    type:'lav',
+    x:920, y:480,
+    connections:['prototypes','agile'],
+    steps:[
+      'Define tareas críticas y flujos principales',
+      'Mide tiempo, errores y observaciones cualitativas',
+      'Recopila hallazgos y prioriza por impacto/esfuerzo'
+    ],
+    tools:`<div class="sticky-lav note"><b>Herramientas:</b> Maze, Lookback, UsabilityHub</div>`,
+    note:`<div class="sticky-mint note"><b>Loop</b><br>Investigación → Prototipo → Test → Mejora → Re-test</div>`
+  },
+
+  /* 7. Agile */
   {
     id:'agile',
-    title:'Agile — Organización & QA',
+    title:'🌀 Agile & Scrum — Organización',
     type:'agile',
-    x:1000, y:680,
-    connections:['practica'],
+    x:520, y:560,
+    connections:['wireframes','testing','handoff'],
     steps:[
-      'Sprint Planning: prioriza por valor/esfuerzo (WSJF o Story Points)',
-      'Daily: 15 min, foco en bloqueos',
-      'Design QA en sprint: checklist visual y de accesibilidad',
-      'Retros: aprender y actualizar DoD'
+      'Sprint Planning: prioriza por valor/esfuerzo',
+      'Daily Standup: 15 minutos — foco en bloqueos',
+      'Design QA: checklist visual y accesibilidad'
     ],
-    tools:`<b>Herramientas:</b> Jira/ClickUp, Confluence, Slack.`,
-    note:`Define DoD claro: componentes, tokens, documentación y tests.`
+    tools:`<div class="note sticky-blue"><b>Herramientas:</b> Jira, ClickUp, Confluence, Slack</div>`,
+    note:`<div class="sticky-cream note"><b>Tip</b><br>Usa whiteboard con stickies rojos para impedimentos y verdes para soluciones.</div>`
   },
+
+  /* 8. Handoff / Entrega */
   {
-    id:'practica',
-    title:'Práctica / Flujo — De brief a handoff',
-    type:'prac',
-    x:640, y:540,
-    connections:['ux','ui','agile'],
+    id:'handoff',
+    title:'🔗 Handoff — Dev Mode / Zeplin',
+    type:'ux',
+    x:320, y:640,
+    connections:['agile'],
     steps:[
-      'Briefing y KPIs claros',
-      'Wireframes low-fi → validación interna',
-      'Prototipo clickable en Figma → test con usuarios',
-      'Recopilar hallazgos y priorizar cambios',
-      'UI finalizar: tokens, components, documentación',
-      'Handoff: Figma Dev Mode / Zeplin + assets'
+      'Tokens + Components documentados',
+      'Assets exportados como SVG/PNG y specs claros',
+      'Checklist de entrega: accesibilidad, tests, docs'
     ],
-    tools:`<b>Atajo:</b> Ten plantillas de wireframe y test para lanzar rápido.`,
-    note:`Prioriza cambios por impacto vs esfuerzo (MVP mindset).`
+    tools:`<div class="note sticky-cream"><b>Handoff</b><br>Figma Dev Mode o Zeplin • Tokens • README de componentes</div>`,
+    note:`<div class="sticky-mint note"><b>Tip</b><br>Incluye ejemplos de interacciones y estados (hover, focus, error).</div>`
+  },
+
+  /* 9. Heuristics */
+  {
+    id:'heuristics',
+    title:'🔮 Heurísticas UX — Norman & Nielsen',
+    type:'ux',
+    x:80, y:640,
+    connections:['uxResearch'],
+    steps:[
+      'Visibilidad del estado del sistema',
+      'Control y libertad del usuario',
+      'Consistencia y estándares',
+      'Prevención de errores; reconocer > recordar'
+    ],
+    tools:`<div class="sticky-cream note"><b>Checklist heurístico</b><br>Prioriza 10 heurísticas clave para revisión rápida</div>`,
+    note:`<div class="sticky-mint note">Aplica heurísticas como filtro antes de pasar a UI.</div>`
+  },
+
+  /* 10. Laws of UX */
+  {
+    id:'laws',
+    title:'⚖️ Laws of UX — Leyes psicológicas',
+    type:'lav',
+    x:1120, y:80,
+    connections:['prototypes','ui'],
+    steps:[
+      'Hick: reduce opciones',
+      'Fitts: targets grandes y cercanos',
+      'Miller: agrupa información',
+      'Pareto: prioriza el 20% de funciones'
+    ],
+    tools:`<div class="sticky-lav note"><b>Sticky</b><br>Von Restorff • Proximidad • Ley de Pareto</div>`,
+    note:`<div class="sticky-mint note"><b>Tip</b><br>Aplica estas leyes para decisiones rápidas en el diseño visual.</div>`
+  },
+
+  /* 11. Wireframe rules (additional) */
+  {
+    id:'wfRules',
+    title:'🎛️ Reglas de Wireframe',
+    type:'prac',
+    x:1120, y:340,
+    connections:['wireframes'],
+    steps:[
+      'Usa grids y spacing constante',
+      'Prioriza contenido sobre ornamentación',
+      'Valida la arquitectura de la información'
+    ],
+    tools:`<div class="sticky-cream note"><b>Reglas</b><br>3 variaciones, prioridad en contenido, usa synoptic lists</div>`,
+    note:`<div class="sticky-mint note">Plantillas de wireframe + checklist de validación.</div>`
+  },
+
+  /* 12. Master Checklist */
+  {
+    id:'master',
+    title:'✅ MASTER CHECKLIST — Flujo completo',
+    type:'lav',
+    x:740, y:820,
+    connections:['agile','handoff'],
+    steps:[
+      'Investigación hecha',
+      'Personas creadas',
+      'Journey completado',
+      'HMW & problem statement',
+      'Wireframes y prototipo',
+      'User tests y priorización',
+      'UI final y tokens',
+      'Handoff y Sprint Review'
+    ],
+    tools:`<div class="sticky-mint note"><b>Checklist</b><br>Usala en cada sprint antes del release.</div>`,
+    note:`<div class="sticky-cream note"><b>Tip</b><br>Marca cada item con evidencia (link a doc / test).</div>`
   }
 ];
 
-/* ===== util: crear nodo DOM ===== */
+/* -------------------- RENDER & INTERACTIVITY (Vanilla) -------------------- */
 const board = document.getElementById('board');
 const svg = document.getElementById('connectors');
+const nodes = {};
+const lines = [];
 
-const nodes = {}; // map id -> element
-const lines = []; // array of {from,to,svgLineElement}
+function escapeHtml(text){
+  return text.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[m]));
+}
 
+/* Create DOM node for each data item */
 function createNode(n){
   const el = document.createElement('article');
-  el.className = 'node ' + (n.type==='central'? 'central': n.type);
-  el.setAttribute('tabindex','0');
-  el.setAttribute('role','button');
-  el.setAttribute('aria-pressed','false');
+  el.className = 'node ' + (n.type || '');
   el.dataset.id = n.id;
-  el.style.left = n.x + 'px';
-  el.style.top = n.y + 'px';
+  el.setAttribute('tabindex','0');
+  el.style.left = (n.x || 80) + 'px';
+  el.style.top = (n.y || 120) + 'px';
 
   const title = document.createElement('div');
   title.className = 'title';
-  title.innerText = n.title;
-
-  const badge = document.createElement('span');
-  badge.className = 'badge';
-  badge.style.display='none';
-  // show badge for non-central
-  if(n.type !== 'central'){
-    badge.style.display='inline-block';
-    badge.innerText = n.type.toUpperCase();
-    el.appendChild(badge);
-  }
-
+  title.innerHTML = escapeHtml(n.title);
   el.appendChild(title);
 
-  const meta = document.createElement('div');
-  meta.className = 'meta';
-  meta.innerText = n.tools ? stripHtml(n.tools).slice(0,80) + (n.tools.length>80? '...':'' ) : '';
-  el.appendChild(meta);
+  const subtitle = document.createElement('div');
+  subtitle.className = 'subtitle';
+  subtitle.innerHTML = n.type === 'central' ? 'Roadmap general' : (n.type || '');
+  el.appendChild(subtitle);
 
-  // content container (hidden until open)
+  // content
   const content = document.createElement('div');
   content.className = 'content';
+  const stepsHtml = (n.steps || []).map(s => `<li>${escapeHtml(s)}</li>`).join('');
   content.innerHTML = `
-    <ol class="steps" aria-hidden="true">
-      ${n.steps.map(s => `<li>${escapeHtml(s)}</li>`).join('')}
-    </ol>
+    <ol class="steps" aria-hidden="true">${stepsHtml}</ol>
     <div class="tools">${n.tools || ''}</div>
-    <div class="note" aria-hidden="true">${n.note || ''}</div>
+    <div class="note">${n.note || ''}</div>
   `;
   el.appendChild(content);
 
-  // add click behavior
-  el.addEventListener('click', (evt)=> {
-    // avoid triggering drag end if user was dragging
-    if(el.dataset.dragging==='true'){ el.dataset.dragging='false'; return; }
+  // toggle on click
+  el.addEventListener('click', (evt) => {
+    // prevent click after drag
+    if(el.dataset.dragging === 'true'){ el.dataset.dragging = 'false'; return; }
     toggleNode(n.id, true);
     evt.stopPropagation();
   });
 
-  // keyboard support
+  // keyboard toggles
   el.addEventListener('keydown', (e) => {
     if(e.key === 'Enter' || e.key === ' '){
-      e.preventDefault();
-      toggleNode(n.id, true);
+      e.preventDefault(); toggleNode(n.id, true);
     }
   });
 
-  // drag support (pointer events)
+  // pointer drag
   el.addEventListener('pointerdown', pointerDown);
   board.appendChild(el);
-  nodes[n.id] = { data:n, el:el };
+  nodes[n.id] = { data: n, el };
 }
 
-/* ===== helpers for escaping and stripping simple HTML for meta preview ===== */
-function escapeHtml(text){
-  return text.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[m]));
-}
-function stripHtml(html){
-  return html.replace(/<\/?[^>]+(>|$)/g, "");
-}
-
-/* ===== create nodes ===== */
+/* create nodes */
 nodesData.forEach(createNode);
 
-/* ===== create lines (one per connection) ===== */
+/* create lines based on connections */
 function createLines(){
-  // clear svg
   svg.innerHTML = '';
   lines.length = 0;
-  nodesData.forEach(n => {
-    (n.connections || []).forEach(targetId => {
-      const from = nodes[n.id].el;
-      const toNode = nodes[targetId];
-      if(!toNode) return;
-      const to = toNode.el;
-      const line = document.createElementNS('http://www.w3.org/2000/svg','path');
-      line.classList.add('line');
-      line.dataset.from = n.id;
-      line.dataset.to = targetId;
-      svg.appendChild(line);
-      lines.push({from:n.id,to:targetId, el: line});
+  nodesData.forEach(n=>{
+    (n.connections || []).forEach(toId=>{
+      if(!nodes[toId]) return;
+      const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+      path.classList.add('line');
+      path.dataset.from = n.id;
+      path.dataset.to = toId;
+      path.setAttribute('fill','none');
+      svg.appendChild(path);
+      lines.push({ from: n.id, to: toId, el: path });
     });
   });
   updateAllLines();
 }
 
-/* ===== compute center of element relative to board ===== */
+/* compute center of element relative to board */
 function getCenter(el){
   const rect = el.getBoundingClientRect();
   const boardRect = board.getBoundingClientRect();
-  const x = rect.left - boardRect.left + rect.width/2;
-  const y = rect.top - boardRect.top + rect.height/2;
-  return {x,y};
+  return { x: rect.left - boardRect.left + rect.width/2, y: rect.top - boardRect.top + rect.height/2 };
 }
 
-/* ===== bezier path builder between centers (curvy arrows) ===== */
+/* bezier path between centers */
 function pathBetween(a,b){
   const dx = Math.abs(b.x - a.x);
-  const curv = Math.min(240, dx * 0.5 + 40);
-  const sx = a.x;
-  const sy = a.y;
-  const tx = b.x;
-  const ty = b.y;
+  const curv = Math.min(260, dx * 0.5 + 40);
+  const sx = a.x, sy = a.y, tx = b.x, ty = b.y;
   const hx1 = sx + ( (tx>sx) ? curv : -curv );
   const hx2 = tx - ( (tx>sx) ? curv : -curv );
   return `M ${sx} ${sy} C ${hx1} ${sy} ${hx2} ${ty} ${tx} ${ty}`;
 }
 
-/* ===== update lines positions ===== */
+/* update position of all lines */
 function updateAllLines(){
-  lines.forEach(l => {
+  lines.forEach(l=>{
     const fromEl = nodes[l.from].el;
-    const toEl = nodes[l.to] ? nodes[l.to].el : null;
+    const toEl = nodes[l.to].el;
     if(!fromEl || !toEl) return;
     const a = getCenter(fromEl);
     const b = getCenter(toEl);
     l.el.setAttribute('d', pathBetween(a,b));
-    // arrows: add marker end
-    l.el.setAttribute('fill','none');
-    // set arrow marker once
+    // add marker once
     if(!svg.querySelector('#arrowHead')){
       const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
       defs.innerHTML = `
-        <marker id="arrowHead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto" fill="${getComputedStyle(document.documentElement).getPropertyValue('--line') || '#9aa'}" >
-          <path d="M 0 0 L 10 5 L 0 10 z"></path>
+        <marker id="arrowHead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="${getComputedStyle(document.documentElement).getPropertyValue('--accent-ux') || '#3A5FCD'}"></path>
         </marker>`;
       svg.appendChild(defs);
     }
@@ -376,124 +477,107 @@ function updateAllLines(){
   });
 }
 
-/* ===== toggle node open/close. If openConnected true, open connected nodes too ===== */
+/* toggle node open/close and optionally open connected nodes */
 function toggleNode(id, openConnected){
   const node = nodes[id];
   if(!node) return;
   const el = node.el;
-  const currentlyOpen = el.classList.contains('open');
-  if(currentlyOpen){
-    // close
+  const isOpen = el.classList.contains('open');
+  if(isOpen){
     el.classList.remove('open');
     el.setAttribute('aria-pressed','false');
-    // reset lines highlight
     highlightConnections(id,false);
   } else {
-    // open this
     el.classList.add('open');
     el.setAttribute('aria-pressed','true');
-    // highlight connections and open connected nodes if requested
     highlightConnections(id,true);
     if(openConnected){
       const cons = node.data.connections || [];
       cons.forEach(cid => {
-        const cnode = nodes[cid];
-        if(cnode && !cnode.el.classList.contains('open')){
-          cnode.el.classList.add('open');
-          cnode.el.setAttribute('aria-pressed','true');
-          highlightConnections(cid,true); // highlight their connections too
+        if(nodes[cid] && !nodes[cid].el.classList.contains('open')){
+          nodes[cid].el.classList.add('open');
+          nodes[cid].el.setAttribute('aria-pressed','true');
+          highlightConnections(cid,true);
         }
       });
     }
     // bring to front
-    el.style.zIndex = 80;
-    // announce
-    el.querySelector('.content')?.setAttribute('aria-hidden','false');
+    el.style.zIndex = 60;
   }
 }
 
-/* ===== highlight connections visually ===== */
+/* highlight connections visually */
 function highlightConnections(id,on){
-  // find lines from this id or to this id
   lines.forEach(l=>{
     if(l.from === id || l.to === id){
       if(on) l.el.classList.add('highlight');
       else l.el.classList.remove('highlight');
     } else {
-      // optionally fade unrelated lines
       if(on) l.el.style.opacity = 0.25;
-      else l.el.style.opacity = 0.9;
+      else l.el.style.opacity = 0.95;
     }
   });
-  // highlight nodes
   Object.values(nodes).forEach(n=>{
-    if(n.data.id === id || (nodes[id].data.connections || []).includes(n.data.id)){
-      if(on) n.el.classList.add('highlight');
-      else n.el.classList.remove('highlight');
-    } else {
-      if(on) n.el.classList.remove('highlight');
-      // leave as default if off
-    }
+    const shouldHighlight = (n.data.id === id) || ((nodes[id].data.connections||[]).includes(n.data.id));
+    if(on && shouldHighlight) n.el.classList.add('highlight');
+    else n.el.classList.remove('highlight');
   });
 }
 
-/* ===== drag implementation using pointer events ===== */
+/* pointer drag implementation */
 let dragState = null;
 function pointerDown(e){
-  // only left button
   if(e.button !== 0) return;
   const el = e.currentTarget;
   el.setPointerCapture(e.pointerId);
-  const startX = e.clientX;
-  const startY = e.clientY;
+  const startX = e.clientX, startY = e.clientY;
   const rect = el.getBoundingClientRect();
   const boardRect = board.getBoundingClientRect();
   const offsetX = startX - rect.left;
   const offsetY = startY - rect.top;
-  dragState = { el, offsetX, offsetY, startX, startY };
+  dragState = { el, offsetX, offsetY, rect, boardRect };
   el.dataset.dragging = 'false';
+
   function moveHandler(ev){
     ev.preventDefault();
-    const nx = ev.clientX - boardRect.left - dragState.offsetX;
-    const ny = ev.clientY - boardRect.top - dragState.offsetY;
-    // keep inside board bounds
-    const maxX = board.clientWidth - rect.width - 8;
-    const maxY = board.clientHeight - rect.height - 8;
+    const nx = ev.clientX - dragState.boardRect.left - dragState.offsetX;
+    const ny = ev.clientY - dragState.boardRect.top - dragState.offsetY;
+    // bounds
+    const maxX = board.clientWidth - dragState.rect.width - 12;
+    const maxY = board.clientHeight - dragState.rect.height - 12;
     const boundedX = Math.max(8, Math.min(maxX, nx));
     const boundedY = Math.max(8, Math.min(maxY, ny));
-    el.style.left = boundedX + 'px';
-    el.style.top = boundedY + 'px';
-    el.dataset.dragging = 'true';
+    dragState.el.style.left = boundedX + 'px';
+    dragState.el.style.top = boundedY + 'px';
+    dragState.el.dataset.dragging = 'true';
     updateAllLines();
   }
   function upHandler(ev){
     el.removeEventListener('pointermove', moveHandler);
     el.removeEventListener('pointerup', upHandler);
     el.releasePointerCapture(ev.pointerId);
-    // persist position
     savePositionsToStorage();
-    // small delay to prevent click firing
     setTimeout(()=> el.dataset.dragging = 'false', 20);
   }
   el.addEventListener('pointermove', moveHandler);
   el.addEventListener('pointerup', upHandler);
 }
 
-/* ===== persist positions in localStorage to keep board between reloads ===== */
+/* persist positions */
 function savePositionsToStorage(){
   const pos = {};
   Object.values(nodes).forEach(n=>{
     pos[n.data.id] = { left: n.el.style.left, top: n.el.style.top };
   });
-  localStorage.setItem('uxmap.positions', JSON.stringify(pos));
+  localStorage.setItem('uxpremium.positions', JSON.stringify(pos));
 }
 function loadPositionsFromStorage(){
-  const raw = localStorage.getItem('uxmap.positions');
+  const raw = localStorage.getItem('uxpremium.positions');
   if(!raw) return false;
   try{
     const pos = JSON.parse(raw);
     Object.entries(pos).forEach(([id,p])=>{
-      if(nodes[id]){
+      if(nodes[id]) {
         nodes[id].el.style.left = p.left;
         nodes[id].el.style.top = p.top;
       }
@@ -503,7 +587,7 @@ function loadPositionsFromStorage(){
   }catch(e){ return false; }
 }
 
-/* ===== reset positions (restore defaults provided in nodesData) ===== */
+/* reset and fit controls */
 document.getElementById('reset').addEventListener('click', ()=>{
   nodesData.forEach(n=>{
     const el = nodes[n.id].el;
@@ -512,62 +596,52 @@ document.getElementById('reset').addEventListener('click', ()=>{
     el.classList.remove('open','highlight');
   });
   updateAllLines();
-  localStorage.removeItem('uxmap.positions');
+  localStorage.removeItem('uxpremium.positions');
 });
 
-/* ===== center board: simple scroll to center on central node ===== */
 document.getElementById('fit').addEventListener('click', ()=>{
-  const central = nodes['central'].el;
-  const boardWrap = document.getElementById('boardWrap');
-  const rect = central.getBoundingClientRect();
-  const wrapRect = boardWrap.getBoundingClientRect();
+  const first = nodes['central'].el;
+  const wrap = document.getElementById('boardWrap');
+  const rect = first.getBoundingClientRect();
+  const wrapRect = wrap.getBoundingClientRect();
   const scrollX = rect.left - wrapRect.left - (wrapRect.width/2) + rect.width/2;
   const scrollY = rect.top - wrapRect.top - (wrapRect.height/2) + rect.height/2;
-  boardWrap.scrollBy({left: scrollX, top: scrollY, behavior:'smooth'});
+  wrap.scrollBy({ left: scrollX, top: scrollY, behavior:'smooth' });
 });
 
-/* ===== initial line creation and position load ===== */
-createLines();
-if(!loadPositionsFromStorage()){
-  updateAllLines();
-}
-
-/* ===== update lines on window resize to keep them synced ===== */
-window.addEventListener('resize', () => {
-  updateAllLines();
-});
-
-/* ===== click outside to close all open nodes ===== */
+/* close all on board click */
 board.addEventListener('click', (e)=>{
-  // if click on empty board
   if(e.target === board || e.target === svg){
     Object.values(nodes).forEach(n => {
       n.el.classList.remove('open','highlight');
       n.el.setAttribute('aria-pressed','false');
     });
-    lines.forEach(l => l.el.classList.remove('highlight'));
-    lines.forEach(l => l.el.style.opacity = 0.9);
+    lines.forEach(l => { l.el.classList.remove('highlight'); l.el.style.opacity = 0.95; });
   }
 });
 
-/* ===== init: open central node by default and highlight connections ===== */
-toggleNode('central', true);
-
-/* ===== optional: keyboard shortcuts for accessibility (collapse all with Escape) ===== */
+/* keyboard shortcuts */
 document.addEventListener('keydown', (e)=>{
   if(e.key === 'Escape'){
     Object.values(nodes).forEach(n => {
       n.el.classList.remove('open','highlight');
       n.el.setAttribute('aria-pressed','false');
     });
-    lines.forEach(l => { l.el.classList.remove('highlight'); l.el.style.opacity=0.9; });
+    lines.forEach(l => { l.el.classList.remove('highlight'); l.el.style.opacity=0.95; });
   }
 });
 
-/* ===== small helper: update lines periodically while dragging (safety) ===== */
+/* init */
+createLines();
+if(!loadPositionsFromStorage()){
+  updateAllLines();
+}
+toggleNode('central', true);
+window.addEventListener('resize', updateAllLines);
+
+/* safety update while dragging */
 setInterval(updateAllLines, 160);
 
-/* ===== END ===== */
 </script>
 </body>
 </html>

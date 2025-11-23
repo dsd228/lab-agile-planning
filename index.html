@@ -1,89 +1,573 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mapa UX/UI Profesional</title>
-<link rel="stylesheet" href="style.css">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Mapa UX/UI + Agile — Miro-style (Interactivo)</title>
+<meta name="description" content="Mapa interactivo tipo Miro para UX/UI + Agile con nodos arrastrables, flechas y notitas" />
+<style>
+  :root{
+    --bg:#f6f7fb;
+    --card:#fff;
+    --muted:#6b6f76;
+    --accent-ux:#648fee;
+    --accent-ui:#68c68d;
+    --accent-agile:#f9a33c;
+    --accent-prac:#ffe066;
+    --central:#cfd6df;
+    --line:#c6c9cf;
+    --highlight:#2b7be4;
+    --radius:12px;
+  }
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Arial; background:var(--bg); color:#222;}
+  header{padding:18px 22px;background:linear-gradient(180deg,#fff, #fbfdff); box-shadow:0 2px 6px rgba(20,20,30,0.03); position:sticky; top:0; z-index:50;}
+  header h1{margin:0;font-size:18px;}
+  header p{margin:6px 0 0;color:var(--muted);font-size:13px;}
+  #boardWrap{position:relative; overflow:auto; height:calc(100vh - 86px); padding:20px;}
+  #board{position:relative; width:1600px; height:1000px; margin:20px auto; background:linear-gradient(0deg,#fff 0%, #fcfdff 100%); border-radius:16px; box-shadow:0 6px 30px rgba(20,30,50,0.06);}
+
+  /* SVG layer for lines */
+  svg#connectors{position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; overflow:visible;}
+
+  /* node styles */
+  .node{
+    position:absolute;
+    min-width:220px;
+    max-width:320px;
+    background:var(--card);
+    padding:12px 14px;
+    border-radius:var(--radius);
+    box-shadow:0 6px 18px rgba(25,30,40,0.06);
+    cursor:grab;
+    user-select:none;
+    transition:transform .16s ease, box-shadow .16s ease;
+    border:2px solid transparent;
+  }
+  .node:active{cursor:grabbing;}
+  .node:hover{transform:translateY(-6px); box-shadow:0 12px 30px rgba(18,22,30,0.08);}
+  .node .title{font-weight:700; font-size:15px; margin-bottom:8px;}
+  .node .meta{font-size:12px;color:var(--muted); margin-bottom:8px;}
+  .node .badge{display:inline-block; padding:4px 8px; border-radius:999px; font-size:11px; margin-right:6px; color:#fff;}
+  .node.ux .badge{background:var(--accent-ux);}
+  .node.ui .badge{background:var(--accent-ui);}
+  .node.agile .badge{background:var(--accent-agile);}
+  .node.prac .badge{background:var(--accent-prac); color:#333;}
+  .node.central{background:linear-gradient(180deg,var(--central),#e8eef6); width:300px; border-radius:18px; box-shadow:0 14px 40px rgba(18,30,60,0.08);}
+
+  /* collapsed vs open */
+  .node .content{display:none; font-size:13px; color:#222; margin-top:8px; line-height:1.35;}
+  .node.open{border-color:var(--highlight); z-index:40; transform:translateY(-8px) scale(1.02);}
+  .node.open .content{display:block;}
+  .node .steps{margin:8px 0 0 18px; padding:0;}
+  .node .steps li{margin:6px 0; font-size:13px; color:#222;}
+  .node .tools{margin-top:8px; font-size:12px; color:var(--muted);}
+  .node .tools b{color:#222;}
+
+  /* sticky note style for extra tip */
+  .note{
+    margin-top:10px;
+    background:linear-gradient(180deg,#fffef2,#fff7d6);
+    border-left:4px solid rgba(0,0,0,0.06);
+    padding:10px;border-radius:8px;font-size:13px;color:#3a3a3a;
+    box-shadow:0 6px 18px rgba(12,20,40,0.04);
+  }
+
+  /* small controls */
+  .controls{position:absolute; right:18px; top:18px; display:flex; gap:8px; z-index:60;}
+  .btn{background:#fff;border:1px solid #e5e7eb;padding:8px 10px;border-radius:8px; font-size:13px; cursor:pointer; box-shadow:0 6px 18px rgba(20,30,50,0.03);}
+  .btn:active{transform:translateY(1px);}
+
+  /* legend */
+  .legend{position:absolute; left:18px; top:18px; z-index:60; background:rgba(255,255,255,0.95); padding:10px;border-radius:10px; box-shadow:0 6px 22px rgba(10,20,30,0.04); font-size:13px;}
+  .legend .row{display:flex; gap:8px; align-items:center; margin:6px 0;}
+  .sw{width:12px;height:12px;border-radius:3px;}
+
+  /* responsive board wrapper */
+  @media(max-width:980px){
+    #board{width:1200px;height:1200px;}
+  }
+  @media(max-width:680px){
+    #board{width:1000px;height:1400px;}
+  }
+
+  /* line highlight */
+  .line{stroke:var(--line); stroke-width:2; opacity:0.9; transition:stroke .18s ease, stroke-width .18s ease, opacity .18s;}
+  .line.highlight{stroke:var(--highlight); stroke-width:3.2; opacity:1;}
+  .node.highlight{box-shadow:0 18px 50px rgba(40,80,200,0.08);}
+
+  /* accessibility focus */
+  .node:focus{outline:3px dashed rgba(40,120,220,0.18); outline-offset:4px;}
+
+  /* help text at bottom */
+  .help{position:absolute;left:18px; bottom:18px; background:rgba(255,255,255,0.95); padding:10px;border-radius:10px; font-size:13px; box-shadow:0 6px 22px rgba(10,20,30,0.04);}
+</style>
 </head>
 <body>
-
 <header>
-  <h1>Mapa UX/UI + Agile Profesional</h1>
-  <p>Guía paso a paso con tips, herramientas y mejores prácticas</p>
+  <h1>Mapa UX/UI + Agile — Tablero Interactivo</h1>
+  <p>Arrastra nodos. Haz clic para abrir notitas. Al abrir, sus nodos conectados también se abren.</p>
 </header>
 
-<main class="map-container">
-  <!-- Nodo Central -->
-  <section class="node central" data-id="central">
-    <h2>USUARIO / CLIENTE</h2>
-    <ul>
-      <li>Punto de partida: necesidades reales</li>
-      <li>Dolor del usuario (Pain Points)</li>
-      <li>Objetivos de negocio y KPIs</li>
-      <li>Herramientas: Google Analytics, Hotjar, Typeform</li>
-    </ul>
-  </section>
+<div id="boardWrap" aria-live="polite">
+  <div id="board" role="application" aria-label="Tablero Mapa UX UI Agile">
+    <!-- SVG layer for connectors -->
+    <svg id="connectors" aria-hidden="true"></svg>
 
-  <!-- UX -->
-  <section class="node rama-ux" data-id="ux" data-connections="ui,practica">
-    <h3>UX</h3>
-    <ol class="steps">
-      <li>Fundamentos: UX ≠ UI, usabilidad + deseabilidad</li>
-      <li>Leyes UX: 
-        <span class="tooltip">Jakob, Hick, Miller, Fitts
-          <span class="tooltiptext">Jakob: patrones esperados | Hick: menos opciones | Miller: 7±2 | Fitts: tamaño y distancia</span>
-        </span>
-      </li>
-      <li>Investigación: Personas, Journey Maps, Benchmarking</li>
-      <li>Tests de usabilidad: Maze, Lookback, UsabilityHub</li>
-      <li>Tip: Plantillas de entrevistas y tests para agilizar</li>
+    <!-- controls & legend -->
+    <div class="legend" aria-hidden="false">
+      <div style="font-weight:700;margin-bottom:6px">Leyenda</div>
+      <div class="row"><span class="sw" style="background:var(--accent-ux)"></span> UX</div>
+      <div class="row"><span class="sw" style="background:var(--accent-ui)"></span> UI</div>
+      <div class="row"><span class="sw" style="background:var(--accent-agile)"></span> Agile</div>
+      <div class="row"><span class="sw" style="background:var(--accent-prac);border:1px solid #d6c85a"></span> Práctica</div>
+    </div>
+
+    <div class="controls" aria-hidden="false">
+      <button class="btn" id="reset">Restaurar posiciones</button>
+      <button class="btn" id="fit">Centrar tablero</button>
+    </div>
+
+    <!-- Nodes are generated by JS -->
+  </div>
+
+  <div class="help" aria-hidden="false">
+    <b>Cómo usar</b><br>
+    - Arrastra nodos para reorganizar el tablero.<br>
+    - Clic en un nodo: abre pasos y notitas; también abre nodos conectados.<br>
+    - Al arrastrar un nodo, las flechas se actualizan automáticamente.<br>
+  </div>
+</div>
+
+<script>
+/* ===== Datos de nodos: edítalos si quieres =====
+   Cada nodo tiene:
+    id, title, type (ux/ui/agile/prac/central), x,y (px en tablero), connections (array de ids),
+    steps (array), tools (string/HTML), note (string HTML)
+*/
+const nodesData = [
+  {
+    id:'central',
+    title:'USUARIO / CLIENTE',
+    type:'central',
+    x:640, y:120,
+    connections:['ux','ui','practica'],
+    steps:[
+      'Identificar stakeholders y objetivos de negocio',
+      'Recoger métricas clave (KPIs) y datos cuantitativos',
+      'Mapear pain points mediante entrevistas y analytics'
+    ],
+    tools:`<b>Herramientas:</b> Google Analytics, Hotjar, Typeform.`,
+    note:`Documenta un mapa de empatía rápido: necesidad / sentimiento / acción.`
+  },
+  {
+    id:'ux',
+    title:'UX — Investigación & Estrategia',
+    type:'ux',
+    x:320, y:280,
+    connections:['ui','practica'],
+    steps:[
+      'Brief + preguntas clave (plantilla)',
+      'Recruit y entrevistas (5–8 usuarios)',
+      'Personas y Journey Map (Miro / FigJam)',
+      'Benchmarking competitivo (Airtable / Notion)',
+      'Tests de usabilidad rápidos (Maze)'
+    ],
+    tools:`<b>Tips:</b> Usa FigJam para workshop; guarda plantillas de entrevistas en Notion.`,
+    note:`Ley de Jakob: aplica patrones conocidos. Hick: simplifica opciones importantes.`
+  },
+  {
+    id:'ui',
+    title:'UI — Diseño Visual & Figma',
+    type:'ui',
+    x:960, y:300,
+    connections:['ux','practica'],
+    steps:[
+      'Definir sistema: tokens, paleta y tipografía',
+      'Configurar 8pt Grid y Auto Layout en Figma',
+      'Crear componentes/variants (botones, inputs, cards)',
+      'Revisiones de contraste y accesibilidad (Stark)',
+      'Export de assets y sprites (Iconify / SVG)'
+    ],
+    tools:`<b>Shortcuts:</b> Auto Layout (Shift+A), Components (Ctrl/Cmd+Alt+K)<br><b>Plugins:</b> Content Reel, Iconify, Stark.`,
+    note:`Mantén jerarquía tipográfica y regla 60-30-10 para color.`
+  },
+  {
+    id:'agile',
+    title:'Agile — Organización & QA',
+    type:'agile',
+    x:1000, y:680,
+    connections:['practica'],
+    steps:[
+      'Sprint Planning: prioriza por valor/esfuerzo (WSJF o Story Points)',
+      'Daily: 15 min, foco en bloqueos',
+      'Design QA en sprint: checklist visual y de accesibilidad',
+      'Retros: aprender y actualizar DoD'
+    ],
+    tools:`<b>Herramientas:</b> Jira/ClickUp, Confluence, Slack.`,
+    note:`Define DoD claro: componentes, tokens, documentación y tests.`
+  },
+  {
+    id:'practica',
+    title:'Práctica / Flujo — De brief a handoff',
+    type:'prac',
+    x:640, y:540,
+    connections:['ux','ui','agile'],
+    steps:[
+      'Briefing y KPIs claros',
+      'Wireframes low-fi → validación interna',
+      'Prototipo clickable en Figma → test con usuarios',
+      'Recopilar hallazgos y priorizar cambios',
+      'UI finalizar: tokens, components, documentación',
+      'Handoff: Figma Dev Mode / Zeplin + assets'
+    ],
+    tools:`<b>Atajo:</b> Ten plantillas de wireframe y test para lanzar rápido.`,
+    note:`Prioriza cambios por impacto vs esfuerzo (MVP mindset).`
+  }
+];
+
+/* ===== util: crear nodo DOM ===== */
+const board = document.getElementById('board');
+const svg = document.getElementById('connectors');
+
+const nodes = {}; // map id -> element
+const lines = []; // array of {from,to,svgLineElement}
+
+function createNode(n){
+  const el = document.createElement('article');
+  el.className = 'node ' + (n.type==='central'? 'central': n.type);
+  el.setAttribute('tabindex','0');
+  el.setAttribute('role','button');
+  el.setAttribute('aria-pressed','false');
+  el.dataset.id = n.id;
+  el.style.left = n.x + 'px';
+  el.style.top = n.y + 'px';
+
+  const title = document.createElement('div');
+  title.className = 'title';
+  title.innerText = n.title;
+
+  const badge = document.createElement('span');
+  badge.className = 'badge';
+  badge.style.display='none';
+  // show badge for non-central
+  if(n.type !== 'central'){
+    badge.style.display='inline-block';
+    badge.innerText = n.type.toUpperCase();
+    el.appendChild(badge);
+  }
+
+  el.appendChild(title);
+
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  meta.innerText = n.tools ? stripHtml(n.tools).slice(0,80) + (n.tools.length>80? '...':'' ) : '';
+  el.appendChild(meta);
+
+  // content container (hidden until open)
+  const content = document.createElement('div');
+  content.className = 'content';
+  content.innerHTML = `
+    <ol class="steps" aria-hidden="true">
+      ${n.steps.map(s => `<li>${escapeHtml(s)}</li>`).join('')}
     </ol>
-  </section>
+    <div class="tools">${n.tools || ''}</div>
+    <div class="note" aria-hidden="true">${n.note || ''}</div>
+  `;
+  el.appendChild(content);
 
-  <!-- UI -->
-  <section class="node rama-ui" data-id="ui" data-connections="ux,practica">
-    <h3>UI & Figma</h3>
-    <ol class="steps">
-      <li>Figma: Auto Layout, Components, Variants</li>
-      <li>Sistemas de diseño: Atomic Design, Grid 8pt, Spacing consistente</li>
-      <li>Tipografía: Jerarquía H1-H2-H3, Google Fonts, regla 60-30-10</li>
-      <li>Iconografía y assets: Iconify, Unsplash, Feather Icons</li>
-      <li>Accesibilidad: contraste con Stark, colores legibles</li>
-    </ol>
-  </section>
+  // add click behavior
+  el.addEventListener('click', (evt)=> {
+    // avoid triggering drag end if user was dragging
+    if(el.dataset.dragging==='true'){ el.dataset.dragging='false'; return; }
+    toggleNode(n.id, true);
+    evt.stopPropagation();
+  });
 
-  <!-- Agile -->
-  <section class="node rama-agile" data-id="agile" data-connections="practica">
-    <h3>Agile</h3>
-    <ol class="steps">
-      <li>Sprint Planning: priorizar tareas por valor + esfuerzo</li>
-      <li>Daily: solo bloqueos y avances</li>
-      <li>Design QA: consistencia visual, interacción y accesibilidad</li>
-      <li>DoD: cada entrega lista para dev</li>
-    </ol>
-  </section>
+  // keyboard support
+  el.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter' || e.key === ' '){
+      e.preventDefault();
+      toggleNode(n.id, true);
+    }
+  });
 
-  <!-- Práctica / Flujo -->
-  <section class="node rama-practica" data-id="practica" data-connections="ux,ui,agile">
-    <h3>Práctica / Flujo</h3>
-    <ol class="steps">
-      <li>Briefing: recopilar info de usuario, objetivos, KPIs</li>
-      <li>Investigación UX: Personas, Journey Map, Benchmark</li>
-      <li>Wireframes low-fi: papel o Figma</li>
-      <li>Prototipo interactivo: Figma, Adobe XD, Maze</li>
-      <li>Testeo: Maze / Lookback → feedback + métricas</li>
-      <li>Iterar según hallazgos</li>
-      <li>UI Final: grids, tipografía, color, iconos, accesibilidad</li>
-      <li>Handoff: Zeplin / Figma Dev Mode → components + tokens + assets</li>
-    </ol>
-  </section>
-</main>
+  // drag support (pointer events)
+  el.addEventListener('pointerdown', pointerDown);
+  board.appendChild(el);
+  nodes[n.id] = { data:n, el:el };
+}
 
-<footer>
-  <p>Mapa interactivo profesional de UX/UI + Agile</p>
-</footer>
+/* ===== helpers for escaping and stripping simple HTML for meta preview ===== */
+function escapeHtml(text){
+  return text.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[m]));
+}
+function stripHtml(html){
+  return html.replace(/<\/?[^>]+(>|$)/g, "");
+}
 
-<script src="script.js"></script>
+/* ===== create nodes ===== */
+nodesData.forEach(createNode);
+
+/* ===== create lines (one per connection) ===== */
+function createLines(){
+  // clear svg
+  svg.innerHTML = '';
+  lines.length = 0;
+  nodesData.forEach(n => {
+    (n.connections || []).forEach(targetId => {
+      const from = nodes[n.id].el;
+      const toNode = nodes[targetId];
+      if(!toNode) return;
+      const to = toNode.el;
+      const line = document.createElementNS('http://www.w3.org/2000/svg','path');
+      line.classList.add('line');
+      line.dataset.from = n.id;
+      line.dataset.to = targetId;
+      svg.appendChild(line);
+      lines.push({from:n.id,to:targetId, el: line});
+    });
+  });
+  updateAllLines();
+}
+
+/* ===== compute center of element relative to board ===== */
+function getCenter(el){
+  const rect = el.getBoundingClientRect();
+  const boardRect = board.getBoundingClientRect();
+  const x = rect.left - boardRect.left + rect.width/2;
+  const y = rect.top - boardRect.top + rect.height/2;
+  return {x,y};
+}
+
+/* ===== bezier path builder between centers (curvy arrows) ===== */
+function pathBetween(a,b){
+  const dx = Math.abs(b.x - a.x);
+  const curv = Math.min(240, dx * 0.5 + 40);
+  const sx = a.x;
+  const sy = a.y;
+  const tx = b.x;
+  const ty = b.y;
+  const hx1 = sx + ( (tx>sx) ? curv : -curv );
+  const hx2 = tx - ( (tx>sx) ? curv : -curv );
+  return `M ${sx} ${sy} C ${hx1} ${sy} ${hx2} ${ty} ${tx} ${ty}`;
+}
+
+/* ===== update lines positions ===== */
+function updateAllLines(){
+  lines.forEach(l => {
+    const fromEl = nodes[l.from].el;
+    const toEl = nodes[l.to] ? nodes[l.to].el : null;
+    if(!fromEl || !toEl) return;
+    const a = getCenter(fromEl);
+    const b = getCenter(toEl);
+    l.el.setAttribute('d', pathBetween(a,b));
+    // arrows: add marker end
+    l.el.setAttribute('fill','none');
+    // set arrow marker once
+    if(!svg.querySelector('#arrowHead')){
+      const defs = document.createElementNS('http://www.w3.org/2000/svg','defs');
+      defs.innerHTML = `
+        <marker id="arrowHead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto" fill="${getComputedStyle(document.documentElement).getPropertyValue('--line') || '#9aa'}" >
+          <path d="M 0 0 L 10 5 L 0 10 z"></path>
+        </marker>`;
+      svg.appendChild(defs);
+    }
+    l.el.setAttribute('marker-end','url(#arrowHead)');
+  });
+}
+
+/* ===== toggle node open/close. If openConnected true, open connected nodes too ===== */
+function toggleNode(id, openConnected){
+  const node = nodes[id];
+  if(!node) return;
+  const el = node.el;
+  const currentlyOpen = el.classList.contains('open');
+  if(currentlyOpen){
+    // close
+    el.classList.remove('open');
+    el.setAttribute('aria-pressed','false');
+    // reset lines highlight
+    highlightConnections(id,false);
+  } else {
+    // open this
+    el.classList.add('open');
+    el.setAttribute('aria-pressed','true');
+    // highlight connections and open connected nodes if requested
+    highlightConnections(id,true);
+    if(openConnected){
+      const cons = node.data.connections || [];
+      cons.forEach(cid => {
+        const cnode = nodes[cid];
+        if(cnode && !cnode.el.classList.contains('open')){
+          cnode.el.classList.add('open');
+          cnode.el.setAttribute('aria-pressed','true');
+          highlightConnections(cid,true); // highlight their connections too
+        }
+      });
+    }
+    // bring to front
+    el.style.zIndex = 80;
+    // announce
+    el.querySelector('.content')?.setAttribute('aria-hidden','false');
+  }
+}
+
+/* ===== highlight connections visually ===== */
+function highlightConnections(id,on){
+  // find lines from this id or to this id
+  lines.forEach(l=>{
+    if(l.from === id || l.to === id){
+      if(on) l.el.classList.add('highlight');
+      else l.el.classList.remove('highlight');
+    } else {
+      // optionally fade unrelated lines
+      if(on) l.el.style.opacity = 0.25;
+      else l.el.style.opacity = 0.9;
+    }
+  });
+  // highlight nodes
+  Object.values(nodes).forEach(n=>{
+    if(n.data.id === id || (nodes[id].data.connections || []).includes(n.data.id)){
+      if(on) n.el.classList.add('highlight');
+      else n.el.classList.remove('highlight');
+    } else {
+      if(on) n.el.classList.remove('highlight');
+      // leave as default if off
+    }
+  });
+}
+
+/* ===== drag implementation using pointer events ===== */
+let dragState = null;
+function pointerDown(e){
+  // only left button
+  if(e.button !== 0) return;
+  const el = e.currentTarget;
+  el.setPointerCapture(e.pointerId);
+  const startX = e.clientX;
+  const startY = e.clientY;
+  const rect = el.getBoundingClientRect();
+  const boardRect = board.getBoundingClientRect();
+  const offsetX = startX - rect.left;
+  const offsetY = startY - rect.top;
+  dragState = { el, offsetX, offsetY, startX, startY };
+  el.dataset.dragging = 'false';
+  function moveHandler(ev){
+    ev.preventDefault();
+    const nx = ev.clientX - boardRect.left - dragState.offsetX;
+    const ny = ev.clientY - boardRect.top - dragState.offsetY;
+    // keep inside board bounds
+    const maxX = board.clientWidth - rect.width - 8;
+    const maxY = board.clientHeight - rect.height - 8;
+    const boundedX = Math.max(8, Math.min(maxX, nx));
+    const boundedY = Math.max(8, Math.min(maxY, ny));
+    el.style.left = boundedX + 'px';
+    el.style.top = boundedY + 'px';
+    el.dataset.dragging = 'true';
+    updateAllLines();
+  }
+  function upHandler(ev){
+    el.removeEventListener('pointermove', moveHandler);
+    el.removeEventListener('pointerup', upHandler);
+    el.releasePointerCapture(ev.pointerId);
+    // persist position
+    savePositionsToStorage();
+    // small delay to prevent click firing
+    setTimeout(()=> el.dataset.dragging = 'false', 20);
+  }
+  el.addEventListener('pointermove', moveHandler);
+  el.addEventListener('pointerup', upHandler);
+}
+
+/* ===== persist positions in localStorage to keep board between reloads ===== */
+function savePositionsToStorage(){
+  const pos = {};
+  Object.values(nodes).forEach(n=>{
+    pos[n.data.id] = { left: n.el.style.left, top: n.el.style.top };
+  });
+  localStorage.setItem('uxmap.positions', JSON.stringify(pos));
+}
+function loadPositionsFromStorage(){
+  const raw = localStorage.getItem('uxmap.positions');
+  if(!raw) return false;
+  try{
+    const pos = JSON.parse(raw);
+    Object.entries(pos).forEach(([id,p])=>{
+      if(nodes[id]){
+        nodes[id].el.style.left = p.left;
+        nodes[id].el.style.top = p.top;
+      }
+    });
+    updateAllLines();
+    return true;
+  }catch(e){ return false; }
+}
+
+/* ===== reset positions (restore defaults provided in nodesData) ===== */
+document.getElementById('reset').addEventListener('click', ()=>{
+  nodesData.forEach(n=>{
+    const el = nodes[n.id].el;
+    el.style.left = n.x + 'px';
+    el.style.top = n.y + 'px';
+    el.classList.remove('open','highlight');
+  });
+  updateAllLines();
+  localStorage.removeItem('uxmap.positions');
+});
+
+/* ===== center board: simple scroll to center on central node ===== */
+document.getElementById('fit').addEventListener('click', ()=>{
+  const central = nodes['central'].el;
+  const boardWrap = document.getElementById('boardWrap');
+  const rect = central.getBoundingClientRect();
+  const wrapRect = boardWrap.getBoundingClientRect();
+  const scrollX = rect.left - wrapRect.left - (wrapRect.width/2) + rect.width/2;
+  const scrollY = rect.top - wrapRect.top - (wrapRect.height/2) + rect.height/2;
+  boardWrap.scrollBy({left: scrollX, top: scrollY, behavior:'smooth'});
+});
+
+/* ===== initial line creation and position load ===== */
+createLines();
+if(!loadPositionsFromStorage()){
+  updateAllLines();
+}
+
+/* ===== update lines on window resize to keep them synced ===== */
+window.addEventListener('resize', () => {
+  updateAllLines();
+});
+
+/* ===== click outside to close all open nodes ===== */
+board.addEventListener('click', (e)=>{
+  // if click on empty board
+  if(e.target === board || e.target === svg){
+    Object.values(nodes).forEach(n => {
+      n.el.classList.remove('open','highlight');
+      n.el.setAttribute('aria-pressed','false');
+    });
+    lines.forEach(l => l.el.classList.remove('highlight'));
+    lines.forEach(l => l.el.style.opacity = 0.9);
+  }
+});
+
+/* ===== init: open central node by default and highlight connections ===== */
+toggleNode('central', true);
+
+/* ===== optional: keyboard shortcuts for accessibility (collapse all with Escape) ===== */
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape'){
+    Object.values(nodes).forEach(n => {
+      n.el.classList.remove('open','highlight');
+      n.el.setAttribute('aria-pressed','false');
+    });
+    lines.forEach(l => { l.el.classList.remove('highlight'); l.el.style.opacity=0.9; });
+  }
+});
+
+/* ===== small helper: update lines periodically while dragging (safety) ===== */
+setInterval(updateAllLines, 160);
+
+/* ===== END ===== */
+</script>
 </body>
 </html>
